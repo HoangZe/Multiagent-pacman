@@ -76,7 +76,7 @@ class ReflexAgent(Agent):
 
         "*** YOUR CODE HERE ***"
         # Initialize score with the current game state score
-        score = successorGameState.getScore()
+        score = 0
 
         # Distance to closest food
         foodList = newFood.asList()  # Get the list of food positions
@@ -317,17 +317,74 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def expectimax(gameState, agentIndex, depth):
+            if gameState.isWin() or gameState.isLose() or depth == 0:
+                return self.evaluationFunction(gameState)
+            if agentIndex == 0:
+                return maxValue(gameState, agentIndex, depth)
+            else:
+                return expValue(gameState, agentIndex, depth)
+
+        def maxValue(gameState, agentIndex, depth):
+            v = float("-inf")
+            for action in gameState.getLegalActions(agentIndex):
+                successor = gameState.generateSuccessor(agentIndex, action)
+                v = max(v,expectimax(successor, 1, depth))
+            return v
+
+        def expValue(gameState, agentIndex, depth):
+            v = 0.0
+            for action in gameState.getLegalActions(agentIndex):
+                successor = gameState.generateSuccessor(agentIndex, action)
+                next_agentIndex = (agentIndex + 1) % gameState.getNumAgents()
+                next_depth = depth - 1 if next_agentIndex == 0 else depth
+                v += expectimax(successor, next_agentIndex, next_depth) / len(gameState.getLegalActions(agentIndex))
+            return v
+        
+        max_score = float("-inf")
+        for action in gameState.getLegalActions(0):
+            score = expectimax(gameState.generateSuccessor(0, action), 1, self.depth)
+            if score > max_score:
+                max_score, best_action = score, action
+        return best_action
 
 def betterEvaluationFunction(currentGameState: GameState):
     """
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
 
-    DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION: it is better :)
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    pacmanPos = currentGameState.getPacmanPosition()
+    food = currentGameState.getFood().asList()
+    ghostStates = currentGameState.getGhostStates()
+    ghostScaredTimes = [ghostState.scaredTimer for ghostState in ghostStates]
+
+    evaluation = 0
+
+    if food:
+        minFoodDistance = min(manhattanDistance(pacmanPos, foodPos) for foodPos in food)
+        evaluation += 1.0 / (minFoodDistance + 1) 
+
+    for ghostState, scaredTime in zip(ghostStates, ghostScaredTimes):
+        ghostPos = ghostState.getPosition()
+        ghostDistance = manhattanDistance(pacmanPos, ghostPos)
+
+        if scaredTime > 0.5:
+            evaluation += 200.0 / (ghostDistance + 1)  
+        else:
+            if ghostDistance <= 2:
+                evaluation -= 100.0  # Big penalty if too close to an active ghost
+
+    evaluation -= 10 * len(food)  # Penalize more remaining food
+
+    capsules = currentGameState.getCapsules()
+    if capsules:
+        minCapsuleDistance = min(manhattanDistance(pacmanPos, capsulePos) for capsulePos in capsules)
+        evaluation += 10 / (minCapsuleDistance + 1)
+
+    return evaluation
 
 # Abbreviation
 better = betterEvaluationFunction
