@@ -74,33 +74,37 @@ class ReflexAgent(Agent):
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
-        "*** YOUR CODE HERE ***"
-        # Initialize score with the current game state score
-        score = 0
+        "* YOUR CODE HERE *"
+        score = successorGameState.getScore()
 
-        # Distance to closest food
-        foodList = newFood.asList()  # Get the list of food positions
+        # Xử lý điểm dựa trên khoảng cách hiện tại với food
+        foodList = newFood.asList()
         if foodList:
             minFoodDistance = min([manhattanDistance(newPos, food) for food in foodList])
-            # The closer Pacman is to the food, the higher the score
-            score += 10.0 / minFoodDistance ###pacman ở trùng vị trí food thì distance = 0, có thể + 10^-n
+            if minFoodDistance == 0:
+                score += 10.0
+            else:
+                score += 10.0 / minFoodDistance
 
-        # Ghost proximity handling
+        # Xử lý điểm dựa trên khoảng cách hiện tại với ghost
         for ghostState, scaredTime in zip(newGhostStates, newScaredTimes):
             ghostPos = ghostState.getPosition()
             distanceToGhost = manhattanDistance(newPos, ghostPos)
 
-            if scaredTime > 0.5:
-                # Ghost is scared, prioritize eating it
-                score += 10.0 / distanceToGhost
+            if distanceToGhost == 0:
+                if scaredTime > 0.5:
+                    score += 10
+                else:
+                    score -= 500
             else:
-                # Ghost is not scared, avoid getting too close
-                if distanceToGhost > 0:  # Avoid division by zero
+                if scaredTime > 0.5:
+                    score += 10.0 / distanceToGhost
+                else:
                     score -= 10.0 / distanceToGhost
 
-        # Avoid stopping unless it's the only legal action
+        # Phạt điểm nặng nếu dừng
         if action == Directions.STOP:
-            score -= 50  # Penalize stopping
+            score -= 50 
 
         return score
 
@@ -162,67 +166,69 @@ class MinimaxAgent(MultiAgentSearchAgent):
         gameState.isLose():
         Returns whether or not the game state is a losing state
         """
-        "*** YOUR CODE HERE ***"
+        "* YOUR CODE HERE *"
         def minimax(agentIndex, depth, gameState):
-            # Base case: Check if the game is over or if we've reached the maximum depth
+            # Trước tiên check xem game đã hết hay đã tới max depth chưa
             if gameState.isWin() or gameState.isLose() or depth == self.depth:
                 return self.evaluationFunction(gameState)
 
-            # Pacman (maximizer) is agentIndex 0
+            # Pacman là maximizer có index = 0
             if agentIndex == 0:
                 return maxValue(agentIndex, depth, gameState)
-            # Ghosts (minimizer) are agentIndex 1 or higher
+            # Ghosts là minimizer có index = 1 hoặc cao hơn
             else:
                 return minValue(agentIndex, depth, gameState)
         
         def maxValue(agentIndex, depth, gameState):
-            # Initialize max value
+            # khởi tạo 1 giá trị điểm minimax siêu thấp
             v = float('-inf')
-            # Get Pacman's legal actions
+            # Loop lấy actions
             legalActions = gameState.getLegalActions(agentIndex)
 
             if not legalActions:
                 return self.evaluationFunction(gameState)
 
-            # Iterate through all possible actions and find the maximum value
+            # Với từng action thì gen ra GameState mới, tìm giá trị max mới
             for action in legalActions:
                 successor = gameState.generateSuccessor(agentIndex, action)
-                v = max(v, minimax(1, depth, successor))  # Ghosts start at index 1
+                # đặt index 1 vì hết lượt pacman lúc nào cx là ghost 1 tiếp
+                v = max(v, minimax(1, depth, successor)) 
             return v
 
         def minValue(agentIndex, depth, gameState):
-            # Initialize min value
+            # khởi tạo 1 giá trị điểm minimax siêu cao
             v = float('inf')
-            # Get the current agent's legal actions (ghosts)
             legalActions = gameState.getLegalActions(agentIndex)
 
             if not legalActions:
                 return self.evaluationFunction(gameState)
 
-            # Get the next agent's index and check if we need to increase depth
+            # Loop qua tất cả các ghost để tìm action đối phó tốt nhất của nó
             nextAgent = agentIndex + 1
+            # trở lại lượt pacman khi đã qua hết ghost sau đó tăng depth
             if nextAgent == gameState.getNumAgents():
-                nextAgent = 0  # Go back to Pacman
-                depth += 1  # Increase the depth since we've gone through all agents
-
-            # Iterate through all possible actions and find the minimum value
+                nextAgent = 0
+                depth += 1
+            
+            # làm tương tự Pacman nhưng ghost thì lấy điểm min
             for action in legalActions:
                 successor = gameState.generateSuccessor(agentIndex, action)
                 v = min(v, minimax(nextAgent, depth, successor))
             return v
 
-        # Pacman (agentIndex 0) will choose the action with the best minimax score
+        # Sau khi có điểm cho từng action hợp lệ của pacman thì chọn action có điểm cao nhất
         bestAction = None
         bestScore = float('-inf')
 
-        for action in gameState.getLegalActions(0):  # Pacman's legal actions
+        for action in gameState.getLegalActions(0):  # Loop các actions của agent 0 - pacman
             successor = gameState.generateSuccessor(0, action)
-            score = minimax(1, 0, successor)  # Start with Ghost 1, depth 0
+            score = minimax(1, 0, successor)  # Gọi hàm minimax để lấy điểm từ ghost 1, depth 0
             if score > bestScore:
                 bestScore = score
                 bestAction = action
 
         return bestAction
+
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
