@@ -241,68 +241,64 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
         "*** YOUR CODE HERE ***"
         def alphabeta(agentIndex, depth, gameState, alpha, beta):
-            # Base case: Check if the game is over or if we've reached the maximum depth
+            # Base case: Check game kết thúc hoặc đã tới max depth chưa
             if gameState.isWin() or gameState.isLose() or depth == self.depth:
                 return self.evaluationFunction(gameState)
 
-            # Pacman (maximizer) is agentIndex 0
+            # Pacman (maximizer) có agentIndex = 0
             if agentIndex == 0:
                 return maxValue(agentIndex, depth, gameState, alpha, beta)
-            # Ghosts (minimizer) are agentIndex 1 or higher
+            # Ghosts (minimizer) có agentIndex >= 1
             else:
                 return minValue(agentIndex, depth, gameState, alpha, beta)
 
         def maxValue(agentIndex, depth, gameState, alpha, beta):
-            # Initialize max value
             v = float('-inf')
-            # Get Pacman's legal actions
             legalActions = gameState.getLegalActions(agentIndex)
 
             if not legalActions:
                 return self.evaluationFunction(gameState)
 
-            # Iterate through all possible actions and update alpha-beta values
+            # Loop qua tất cả các action hợp lệ và cập nhật điểm 
             for action in legalActions:
                 successor = gameState.generateSuccessor(agentIndex, action)
-                v = max(v, alphabeta(1, depth, successor, alpha, beta))  # Ghosts start at index 1
+                v = max(v, alphabeta(1, depth, successor, alpha, beta)) 
                 if v > beta:
-                    return v  # Prune the remaining branches
+                    return v  # Prune
                 alpha = max(alpha, v)
             return v
 
         def minValue(agentIndex, depth, gameState, alpha, beta):
-            # Initialize min value
             v = float('inf')
-            # Get the current agent's legal actions (ghosts)
             legalActions = gameState.getLegalActions(agentIndex)
 
             if not legalActions:
                 return self.evaluationFunction(gameState)
 
-            # Get the next agent's index and check if we need to increase depth
+            # Tăng agent index, tăng depth khi hết ghost
             nextAgent = agentIndex + 1
             if nextAgent == gameState.getNumAgents():
-                nextAgent = 0  # Go back to Pacman
-                depth += 1  # Increase the depth since we've gone through all agents
+                nextAgent = 0 
+                depth += 1  
 
-            # Iterate through all possible actions and update alpha-beta values
+            # Loop qua tất cả các action hợp lệ và cập nhật điểm 
             for action in legalActions:
                 successor = gameState.generateSuccessor(agentIndex, action)
                 v = min(v, alphabeta(nextAgent, depth, successor, alpha, beta))
                 if v < alpha:
-                    return v  # Prune the remaining branches
+                    return v  # Prune
                 beta = min(beta, v)
             return v
 
-        # Pacman (agentIndex 0) will choose the action with the best alpha-beta score
+        # Pacman (agentIndex = 0) chọn action có điểm Alpha-Beta cao nhất
         bestAction = None
         bestScore = float('-inf')
         alpha = float('-inf')
         beta = float('inf')
 
-        for action in gameState.getLegalActions(0):  # Pacman's legal actions
+        for action in gameState.getLegalActions(0):  # Loop các action hợp lệ của pacman
             successor = gameState.generateSuccessor(0, action)
-            score = alphabeta(1, 0, successor, alpha, beta)  # Start with Ghost 1, depth 0
+            score = alphabeta(1, 0, successor, alpha, beta)
             if score > bestScore:
                 bestScore = score
                 bestAction = action
@@ -381,9 +377,9 @@ def betterEvaluationFunction(currentGameState: GameState):
             evaluation += 200.0 / (ghostDistance + 1)  
         else:
             if ghostDistance <= 2:
-                evaluation -= 100.0  # Big penalty if too close to an active ghost
+                evaluation -= 100.0  # Trừ nhiều điểm nếu ghost quá gần
 
-    evaluation -= 10 * len(food)  # Penalize more remaining food
+    evaluation -= 10 * len(food)  # Trừ càng nhiều điểm với càng nhiều food còn lại
 
     capsules = currentGameState.getCapsules()
     if capsules:
